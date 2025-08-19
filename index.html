@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON ↔ YAML Converter Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-secondary: #1a1b2e;
+            --bg-card: #16213e;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a0aec0;
+            --accent: #4fd1c7;
+            --accent-hover: #38b2ac;
+            --success: #48bb78;
+            --error: #f56565;
+            --warning: #ed8936;
+            --border: #2d3748;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--accent), #9f7aea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--accent), var(--accent-hover));
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #4a5568, #2d3748);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, var(--error), #e53e3e);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .file-info {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .editor {
+            width: 100%;
+            height: 400px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .editor:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 209, 199, 0.1);
+        }
+
+        .output {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            height: 400px;
+            overflow: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .options {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .status-bar {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .stats {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .stat-value {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .alert {
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-error {
+            background: rgba(245, 101, 101, 0.1);
+            border-left-color: var(--error);
+            color: #fed7d7;
+        }
+
+        .alert-success {
+            background: rgba(72, 187, 120, 0.1);
+            border-left-color: var(--success);
+            color: #c6f6d5;
+        }
+
+        .alert-warning {
+            background: rgba(237, 137, 54, 0.1);
+            border-left-color: var(--warning);
+            color: #fbd38d;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .feature-title {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">JSON ↔ YAML Converter Pro</h1>
+            <p class="subtitle">Convert between JSON and YAML with advanced cleaning, formatting, and security features</p>
+        </header>
+
+        <div class="controls">
+            <button class="btn" id="convertBtn">
+                <span id="convertText">Convert to YAML</span>
+                <span id="loadingSpinner" class="loading hidden"></span>
+            </button>
+            <button class="btn btn-secondary" id="swapBtn">⇄ Swap</button>
+            <button class="btn btn-secondary" id="clearBtn">Clear All</button>
+            <button class="btn btn-secondary" id="downloadBtn" disabled>Download</button>
+            <button class="btn btn-secondary" id="copyBtn" disabled>Copy Output</button>
+        </div>
+
+        <div class="options">
+            <div class="checkbox-group">
+                <input type="checkbox" id="dropEvents" class="checkbox" checked>
+                <label for="dropEvents">Remove events/scripts</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="maskTokens" class="checkbox" checked>
+                <label for="maskTokens">Mask sensitive tokens</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="prettify" class="checkbox" checked>
+                <label for="prettify">Pretty format</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="literalBlocks" class="checkbox" checked>
+                <label for="literalBlocks">Use literal blocks for multiline</label>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title" id="inputTitle">Input (JSON)</h2>
+                    <div class="file-info" id="inputInfo"></div>
+                </div>
+                <textarea 
+                    class="editor" 
+                    id="inputEditor" 
+                    placeholder="Paste your JSON here... Comments and trailing commas are supported!"
+                    spellcheck="false"
+                ></textarea>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title" id="outputTitle">Output (YAML)</h2>
+                    <div class="file-info" id="outputInfo"></div>
+                </div>
+                <pre class="output" id="outputEditor"></pre>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="stats" id="statsContainer">
+                <div class="stat-item">
+                    <span>Status:</span>
+                    <span class="stat-value" id="statusText">Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-title">🧹 Smart Cleaning</div>
+                <div class="feature-desc">Automatically removes comments, fixes trailing commas, and handles malformed JSON</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-title">🔐 Security Focused</div>
+                <div class="feature-desc">Masks sensitive tokens, API keys, and bearer tokens to protect your credentials</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-title">⚡ Flexible Format</div>
+                <div class="feature-desc">Supports JSONC, handles embedded JSON strings, and preserves structure</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-title">📊 Postman Ready</div>
+                <div class="feature-desc">Optimized for Postman collections with request counting and event handling</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class JSONYAMLConverter {
+            constructor() {
+                this.mode = 'json-to-yaml'; // 'json-to-yaml' or 'yaml-to-json'
+                this.initializeElements();
+                this.bindEvents();
+                this.loadSample();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    inputEditor: document.getElementById('inputEditor'),
+                    outputEditor: document.getElementById('outputEditor'),
+                    convertBtn: document.getElementById('convertBtn'),
+                    convertText: document.getElementById('convertText'),
+                    loadingSpinner: document.getElementById('loadingSpinner'),
+                    swapBtn: document.getElementById('swapBtn'),
+                    clearBtn: document.getElementById('clearBtn'),
+                    downloadBtn: document.getElementById('downloadBtn'),
+                    copyBtn: document.getElementById('copyBtn'),
+                    dropEvents: document.getElementById('dropEvents'),
+                    maskTokens: document.getElementById('maskTokens'),
+                    prettify: document.getElementById('prettify'),
+                    literalBlocks: document.getElementById('literalBlocks'),
+                    inputTitle: document.getElementById('inputTitle'),
+                    outputTitle: document.getElementById('outputTitle'),
+                    inputInfo: document.getElementById('inputInfo'),
+                    outputInfo: document.getElementById('outputInfo'),
+                    statsContainer: document.getElementById('statsContainer'),
+                    statusText: document.getElementById('statusText'),
+                    alertContainer: document.getElementById('alertContainer')
+                };
+            }
+
+            bindEvents() {
+                this.elements.convertBtn.addEventListener('click', () => this.convert());
+                this.elements.swapBtn.addEventListener('click', () => this.swap());
+                this.elements.clearBtn.addEventListener('click', () => this.clear());
+                this.elements.downloadBtn.addEventListener('click', () => this.download());
+                this.elements.copyBtn.addEventListener('click', () => this.copyOutput());
+                
+                this.elements.inputEditor.addEventListener('input', () => this.updateInputInfo());
+                this.elements.inputEditor.addEventListener('paste', () => {
+                    setTimeout(() => this.updateInputInfo(), 10);
+                });
+
+                // Auto-convert on input change (debounced)
+                let timeout;
+                this.elements.inputEditor.addEventListener('input', () => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => this.convert(), 500);
+                });
+            }
+
+            showAlert(message, type = 'error') {
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type}`;
+                alert.textContent = message;
+                
+                this.elements.alertContainer.innerHTML = '';
+                this.elements.alertContainer.appendChild(alert);
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 3000);
+                }
+            }
+
+            setLoading(loading) {
+                if (loading) {
+                    this.elements.convertText.textContent = 'Converting...';
+                    this.elements.loadingSpinner.classList.remove('hidden');
+                    this.elements.convertBtn.disabled = true;
+                } else {
+                    this.elements.convertText.textContent = this.mode === 'json-to-yaml' ? 'Convert to YAML' : 'Convert to JSON';
+                    this.elements.loadingSpinner.classList.add('hidden');
+                    this.elements.convertBtn.disabled = false;
+                }
+            }
+
+            updateInputInfo() {
+                const text = this.elements.inputEditor.value;
+                const lines = text.split('\n').length;
+                const chars = text.length;
+                const size = new Blob([text]).size;
+                
+                this.elements.inputInfo.textContent = `${lines} lines • ${chars} chars • ${(size / 1024).toFixed(1)} KB`;
+            }
+
+            updateOutputInfo() {
+                const text = this.elements.outputEditor.textContent;
+                const lines = text.split('\n').length;
+                const chars = text.length;
+                const size = new Blob([text]).size;
+                
+                this.elements.outputInfo.textContent = `${lines} lines • ${chars} chars • ${(size / 1024).toFixed(1)} KB`;
+            }
+
+            updateStats(stats = {}) {
+                const defaultStats = {
+                    status: 'Ready',
+                    requests: 0,
+                    processingTime: 0
+                };
+                
+                const finalStats = { ...defaultStats, ...stats };
+                
+                this.elements.statsContainer.innerHTML = `
+                    <div class="stat-item">
+                        <span>Status:</span>
+                        <span class="stat-value">${finalStats.status}</span>
+                    </div>
+                    ${finalStats.requests > 0 ? `
+                        <div class="stat-item">
+                            <span>Requests:</span>
+                            <span class="stat-value">${finalStats.requests}</span>
+                        </div>
+                    ` : ''}
+                    ${finalStats.processingTime > 0 ? `
+                        <div class="stat-item">
+                            <span>Processing:</span>
+                            <span class="stat-value">${finalStats.processingTime}ms</span>
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            // Enhanced cleaning and parsing logic
+            cleanAndParse(obj, options = {}) {
+                const { dropEvents, maskTokens } = options;
+                const SENSITIVE_KEYS = new Set(['access_token', 'refresh_token', 'token', 'api_key', 'apikey', 'secret']);
+
+                if (typeof obj === 'string') {
+                    let str = obj.replace(/\r\n?/g, '\n');
+                    
+                    // Try to parse if it looks like JSON
+                    if (this.looksLikeJSON(str)) {
+                        try {
+                            return this.cleanAndParse(JSON.parse(str), options);
+                        } catch {
+                            const cleaned = this.cleanJSONLikeString(str);
+                            try {
+                                return this.cleanAndParse(JSON.parse(cleaned), options);
+                            } catch {
+                                return this.maskBearerToken(str, maskTokens);
+                            }
+                        }
+                    }
+                    return this.maskBearerToken(str, maskTokens);
+                }
+
+                if (Array.isArray(obj)) {
+                    return obj.map(item => this.cleanAndParse(item, options));
+                }
+
+                if (obj && typeof obj === 'object') {
+                    const result = {};
+                    
+                    for (const [key, value] of Object.entries(obj)) {
+                        const lowerKey = key.toLowerCase();
+                        
+                        // Drop events/scripts if requested
+                        if (dropEvents && ['event', 'events', 'script', 'scripts'].includes(lowerKey)) {
+                            continue;
+                        }
+
+                        // Mask sensitive keys
+                        if (maskTokens && SENSITIVE_KEYS.has(lowerKey)) {
+                            result[key] = '***HIDDEN***';
+                            continue;
+                        }
+
+                        // Handle authorization headers
+                        if (lowerKey === 'header' && Array.isArray(value)) {
+                            result[key] = value.map(header => {
+                                if (header && typeof header === 'object' && 
+                                    header.key && header.key.toLowerCase() === 'authorization') {
+                                    return {
+                                        ...header,
+                                        value: this.maskBearerToken(header.value || '', maskTokens)
+                                    };
+                                }
+                                return this.cleanAndParse(header, options);
+                            });
+                            continue;
+                        }
+
+                        // Handle Postman auth.bearer
+                        if (lowerKey === 'auth' && value && typeof value === 'object' && value.bearer) {
+                            const authData = { ...value };
+                            if (Array.isArray(authData.bearer)) {
+                                authData.bearer = authData.bearer.map(item => {
+                                    if (item && typeof item === 'object' && 
+                                        item.key && item.key.toLowerCase() === 'token') {
+                                        return {
+                                            ...item,
+                                            value: maskTokens ? '***HIDDEN***' : item.value
+                                        };
+                                    }
+                                    return this.cleanAndParse(item, options);
+                                });
+                            }
+                            result[key] = authData;
+                            continue;
+                        }
+
+                        result[key] = this.cleanAndParse(value, options);
+                    }
+                    
+                    return result;
+                }
+
+                return obj;
+            }
+
+            looksLikeJSON(str) {
+                const trimmed = str.trim();
+                return (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+                       (trimmed.startsWith('[') && trimmed.endsWith(']'));
+            }
+
+            cleanJSONLikeString(str) {
+                // Remove comments
+                str = str.replace(/\/\*[\s\S]*?\*\//g, '');
+                str = str.replace(/(^|[ \t])\/\/.*?$/gm, '$1');
+                
+                // Fix trailing commas
+                let prev;
+                do {
+                    prev = str;
+                    str = str.replace(/,\s*([}\]])/g, '$1');
+                } while (prev !== str);
+                
+                return str.trim();
+            }
+
+            maskBearerToken(value, mask) {
+                if (!mask || typeof value !== 'string') return value;
+                
+                const trimmed = value.trim();
+                if (trimmed.toLowerCase().startsWith('bearer ')) {
+                    return 'Bearer ***HIDDEN***';
+                }
+                return value;
+            }
+
+            parseJSONLike(text) {
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    const cleaned = this.cleanJSONLikeString(text);
+                    return JSON.parse(cleaned);
+                }
+            }
+
+            countRequests(obj) {
+                if (!obj || typeof obj !== 'object' || !Array.isArray(obj.item)) {
+                    return 0;
+                }
+
+                let count = 0;
+                const stack = [...obj.item];
+                
+                while (stack.length) {
+                    const item = stack.pop();
+                    if (item && typeof item === 'object') {
+                        if (Array.isArray(item.item)) {
+                            stack.push(...item.item);
+                        } else if (item.request) {
+                            count++;
+                        }
+                    }
+                }
+                
+                return count;
+            }
+
+            async convert() {
+                const input = this.elements.inputEditor.value.trim();
+                if (!input) {
+                    this.showAlert('Please enter some content to convert');
+                    return;
+                }
+
+                this.setLoading(true);
+                this.elements.alertContainer.innerHTML = '';
+                
+                const startTime = Date.now();
+
+                try {
+                    let result;
+                    let requests = 0;
+
+                    if (this.mode === 'json-to-yaml') {
+                        // JSON to YAML
+                        const parsed = this.parseJSONLike(input);
+                        const cleaned = this.cleanAndParse(parsed, {
+                            dropEvents: this.elements.dropEvents.checked,
+                            maskTokens: this.elements.maskTokens.checked
+                        });
+
+                        requests = this.countRequests(cleaned);
+                        
+                        if (this.elements.literalBlocks.checked) {
+                            result = jsyaml.dump(cleaned, {
+                                indent: 2,
+                                lineWidth: -1,
+                                noRefs: true,
+                                sortKeys: false,
+                                styles: {
+                                    '!!str': 'literal'
+                                }
+                            });
+                        } else {
+                            result = jsyaml.dump(cleaned, {
+                                indent: 2,
+                                lineWidth: -1,
+                                noRefs: true,
+                                sortKeys: false
+                            });
+                        }
+                    } else {
+                        // YAML to JSON
+                        const parsed = jsyaml.load(input);
+                        const cleaned = this.cleanAndParse(parsed, {
+                            dropEvents: this.elements.dropEvents.checked,
+                            maskTokens: this.elements.maskTokens.checked
+                        });
+
+                        requests = this.countRequests(cleaned);
+                        
+                        result = this.elements.prettify.checked ? 
+                            JSON.stringify(cleaned, null, 2) : 
+                            JSON.stringify(cleaned);
+                    }
+
+                    this.elements.outputEditor.textContent = result;
+                    this.elements.downloadBtn.disabled = false;
+                    this.elements.copyBtn.disabled = false;
+                    
+                    const processingTime = Date.now() - startTime;
+                    this.updateStats({
+                        status: 'Converted successfully',
+                        requests,
+                        processingTime
+                    });
+                    
+                    this.updateOutputInfo();
+                    this.showAlert('Conversion completed successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Conversion error:', error);
+                    this.showAlert(`Conversion failed: ${error.message}`);
+                    this.updateStats({ status: 'Error' });
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            swap() {
+                const input = this.elements.inputEditor.value;
+                const output = this.elements.outputEditor.textContent;
+                
+                this.elements.inputEditor.value = output;
+                this.elements.outputEditor.textContent = input;
+                
+                // Switch mode
+                this.mode = this.mode === 'json-to-yaml' ? 'yaml-to-json' : 'json-to-yaml';
+                
+                // Update UI
+                if (this.mode === 'json-to-yaml') {
+                    this.elements.inputTitle.textContent = 'Input (JSON)';
+                    this.elements.outputTitle.textContent = 'Output (YAML)';
+                    this.elements.convertText.textContent = 'Convert to YAML';
+                } else {
+                    this.elements.inputTitle.textContent = 'Input (YAML)';
+                    this.elements.outputTitle.textContent = 'Output (JSON)';
+                    this.elements.convertText.textContent = 'Convert to JSON';
+                }
+                
+                this.updateInputInfo();
+                this.updateOutputInfo();
+                this.showAlert('Input and output swapped!', 'success');
+            }
+
+            clear() {
+                this.elements.inputEditor.value = '';
+                this.elements.outputEditor.textContent = '';
+                this.elements.downloadBtn.disabled = true;
+                this.elements.copyBtn.disabled = true;
+                this.elements.alertContainer.innerHTML = '';
+                this.updateInputInfo();
+                this.updateOutputInfo();
+                this.updateStats();
+                this.showAlert('All content cleared!', 'success');
+            }
+
+            async copyOutput() {
+                try {
+                    await navigator.clipboard.writeText(this.elements.outputEditor.textContent);
+                    this.showAlert('Output copied to clipboard!', 'success');
+                } catch (error) {
+                    console.error('Copy failed:', error);
+                    this.showAlert('Failed to copy to clipboard');
+                }
+            }
+
+            download() {
+                const content = this.elements.outputEditor.textContent;
+                if (!content) return;
+
+                const extension = this.mode === 'json-to-yaml' ? 'yml' : 'json';
+                const filename = `converted.${extension}`;
+                const mimeType = this.mode === 'json-to-yaml' ? 'text/yaml' : 'application/json';
+                
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showAlert(`Downloaded as ${filename}!`, 'success');
+            }
+
+            loadSample() {
+                const sampleJSON = `{
+    // This is a sample Postman collection with comments
+    "info": {
+        "name": "My API Collection",
+        "description": "Sample collection with authentication"
+    },
+    "auth": {
+        "bearer": [
+            {
+                "key": "token",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample.token"
+            }
+        ]
+    },
+    "header": [
+        {
+            "key": "Authorization", 
+            "value": "Bearer abc123def456"
+        },
+        {
+            "key": "Content-Type",
+            "value": "application/json"
+        }
+    ],
+                "access_token": "super-secret-token",
+    "item": [
+        {
+            "name": "Get Users",
+            "request": {
+                "method": "GET",
+                "url": "https://api.example.com/users",
+                "body": {
+                    "raw": "{\\"query\\": \\"active users\\", \\"limit\\": 10}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "console.log('This event will be removed if cleanup is enabled');"
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "note": "This is a multiline note\\nthat demonstrates\\nhow the converter handles\\nmultiple lines of text."
+}`;
+
+                this.elements.inputEditor.value = sampleJSON;
+                this.updateInputInfo();
+            }
+        }
+
+        // Initialize the converter when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new JSONYAMLConverter();
+        });
+    </script>
+</body>
+</html>
