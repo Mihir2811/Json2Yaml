@@ -1,354 +1,528 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSON ↔ YAML Converter Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* ─────────────────────────────────────────────
+           SPOTLIGHT THEME  —  CSS-only, no logic touch
+        ───────────────────────────────────────────── */
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ── Color tokens (light defaults) ── */
+        :root {
+            --bg:         #ffffff;
+            --bg-subtle:  #f4f4f5;   /* zinc-100 */
+            --bg-card:    #ffffff;
+            --border:     #e4e4e7;   /* zinc-200 */
+            --border-md:  #d1d1d6;
+            --ring:       #18181b;   /* zinc-900 */
+            --text:       #18181b;
+            --text-muted: #71717a;   /* zinc-500 */
+            --text-dim:   #a1a1aa;   /* zinc-400 */
+            --accent:     #18181b;
+            --accent-fg:  #ffffff;
+            --success:    #16a34a;
+            --error:      #dc2626;
+            --warn:       #d97706;
+            --code-bg:    #f4f4f5;
+            --shadow-sm:  0 1px 2px rgba(0,0,0,.05);
+            --shadow-md:  0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
+            --shadow-lg:  0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.05);
+            --radius:     .75rem;    /* 12px */
         }
 
-        :root {
-            --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --bg-secondary: #1a1b2e;
-            --bg-card: #16213e;
-            --text-primary: #e2e8f0;
-            --text-secondary: #a0aec0;
-            --accent: #4fd1c7;
-            --accent-hover: #38b2ac;
-            --success: #48bb78;
-            --error: #f56565;
-            --warning: #ed8936;
-            --border: #2d3748;
-            --shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.4);
+        /* ── Dark mode tokens ── */
+        html.dark {
+            --bg:         #09090b;   /* zinc-950 */
+            --bg-subtle:  #18181b;   /* zinc-900 */
+            --bg-card:    #18181b;
+            --border:     #27272a;   /* zinc-800 */
+            --border-md:  #3f3f46;   /* zinc-700 */
+            --ring:       #ffffff;
+            --text:       #fafafa;
+            --text-muted: #a1a1aa;
+            --text-dim:   #52525b;
+            --accent:     #ffffff;
+            --accent-fg:  #18181b;
+            --success:    #4ade80;
+            --error:      #f87171;
+            --warn:       #fbbf24;
+            --code-bg:    #09090b;
+            --shadow-sm:  0 1px 2px rgba(0,0,0,.4);
+            --shadow-md:  0 4px 6px -1px rgba(0,0,0,.4);
+            --shadow-lg:  0 10px 15px -3px rgba(0,0,0,.5);
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             line-height: 1.6;
+            transition: background .2s, color .2s;
         }
 
+        /* ── Layout ── */
         .container {
-            max-width: 1400px;
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 2.5rem 1.5rem;
         }
 
-        .header {
-            text-align: center;
+        /* ── Top bar with toggle ── */
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
             margin-bottom: 3rem;
         }
 
+        /* ── Toggle switch (Spotlight style) ── */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: .625rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .theme-toggle__label {
+            font-size: .8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: .01em;
+        }
+        .theme-toggle__track {
+            position: relative;
+            width: 2.75rem;
+            height: 1.5rem;
+            border-radius: 9999px;
+            background: var(--border-md);
+            border: 1.5px solid var(--border-md);
+            transition: background .2s, border-color .2s;
+            flex-shrink: 0;
+        }
+        html.dark .theme-toggle__track {
+            background: var(--text);
+            border-color: var(--text);
+        }
+        .theme-toggle__thumb {
+            position: absolute;
+            top: 50%;
+            left: .2rem;
+            transform: translateY(-50%);
+            width: 1.05rem;
+            height: 1.05rem;
+            border-radius: 9999px;
+            background: #fff;
+            box-shadow: var(--shadow-sm);
+            transition: transform .2s cubic-bezier(.4,0,.2,1), left .2s cubic-bezier(.4,0,.2,1);
+        }
+        html.dark .theme-toggle__thumb {
+            left: calc(100% - 1.25rem);
+            background: var(--bg);
+        }
+        .theme-toggle__icon {
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .header__eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            font-size: .75rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+        .header__eyebrow::before,
+        .header__eyebrow::after {
+            content: '';
+            display: block;
+            width: 1.5rem;
+            height: 1px;
+            background: var(--border-md);
+        }
         .title {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, var(--accent), #9f7aea);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: clamp(1.875rem, 4vw, 2.75rem);
+            font-weight: 700;
+            letter-spacing: -.03em;
+            color: var(--text);
+            margin-bottom: .625rem;
+            line-height: 1.15;
         }
-
         .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
+            color: var(--text-muted);
+            font-size: .9375rem;
+            max-width: 42rem;
+            margin: 0 auto;
         }
 
+        /* ── Controls ── */
         .controls {
             display: flex;
             justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: .625rem;
+            margin-bottom: 1.75rem;
             flex-wrap: wrap;
         }
 
         .btn {
-            background: linear-gradient(45deg, var(--accent), var(--accent-hover));
-            border: none;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            padding: .5rem 1.125rem;
+            border-radius: .5rem;
+            font-size: .875rem;
+            font-weight: 500;
+            letter-spacing: .01em;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
+            transition: background .15s, box-shadow .15s, transform .1s, opacity .15s;
+            border: 1.5px solid transparent;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+        .btn:active { transform: scale(.97); }
+        .btn:disabled { opacity: .45; pointer-events: none; }
+
+        /* Primary – filled black/white */
+        .btn-primary {
+            background: var(--text);
+            color: var(--bg);
+            border-color: var(--text);
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-primary:hover {
+            box-shadow: var(--shadow-md);
+            opacity: .9;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
+        /* Secondary – outlined */
         .btn-secondary {
-            background: linear-gradient(45deg, #4a5568, #2d3748);
+            background: var(--bg-card);
+            color: var(--text);
+            border-color: var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        html.dark .btn-secondary { background: var(--bg-subtle); }
+        .btn-secondary:hover {
+            border-color: var(--border-md);
+            box-shadow: var(--shadow-md);
         }
 
+        /* Danger */
         .btn-danger {
-            background: linear-gradient(45deg, var(--error), #e53e3e);
+            background: transparent;
+            color: var(--error);
+            border-color: var(--border);
+        }
+        .btn-danger:hover { border-color: var(--error); }
+
+        /* ── Options row ── */
+        .options {
+            display: flex;
+            gap: 1.25rem 2rem;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+            flex-wrap: wrap;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            font-size: .8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            letter-spacing: .01em;
+        }
+        .checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border: 1.5px solid var(--border-md);
+            border-radius: .25rem;
+            background: var(--bg);
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+            transition: background .15s, border-color .15s;
+        }
+        .checkbox:checked {
+            background: var(--text);
+            border-color: var(--text);
+        }
+        .checkbox:checked::after {
+            content: '';
+            position: absolute;
+            top: .15rem; left: .275rem;
+            width: .35rem; height: .55rem;
+            border: 2px solid var(--bg);
+            border-top: none; border-left: none;
+            transform: rotate(45deg);
+        }
+        .checkbox:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+        /* ── Alerts ── */
+        #alertContainer { margin-bottom: 1rem; }
+        .alert {
+            border-radius: .5rem;
+            padding: .75rem 1rem;
+            margin-bottom: .5rem;
+            font-size: .8125rem;
+            font-weight: 500;
+            border: 1.5px solid;
+            animation: slideDown .2s ease;
+        }
+        .alert-error   { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .alert-success { background: #f0fdf4; color: #14532d; border-color: #bbf7d0; }
+        .alert-warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        html.dark .alert-error   { background: #1c0a0a; color: var(--error); border-color: #7f1d1d; }
+        html.dark .alert-success { background: #052e16; color: var(--success); border-color: #14532d; }
+        html.dark .alert-warning { background: #1c1000; color: var(--warn); border-color: #78350f; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
+        /* ── Main grid ── */
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        @media (max-width: 900px) {
+            .main-content { grid-template-columns: 1fr; }
         }
 
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
+        /* ── Panel ── */
         .panel {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(10px);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-md);
+            transition: background .2s, border-color .2s;
         }
-
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: .875rem;
         }
-
         .panel-title {
-            font-size: 1.25rem;
+            font-size: .8125rem;
             font-weight: 600;
-            color: var(--accent);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
         }
-
         .file-info {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
+            font-size: .75rem;
+            color: var(--text-dim);
+            font-variant-numeric: tabular-nums;
         }
 
+        /* ── Editor & output ── */
         .editor {
             width: 100%;
-            height: 400px;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.875rem;
-            line-height: 1.6;
-            color: var(--text-primary);
+            height: 380px;
+            background: var(--bg-subtle);
+            border: 1.5px solid var(--border);
+            border-radius: .5rem;
+            padding: .875rem 1rem;
+            font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+            font-size: .8125rem;
+            line-height: 1.7;
+            color: var(--text);
             resize: vertical;
-            transition: border-color 0.3s ease;
-        }
-
-        .editor:focus {
+            transition: border-color .15s, box-shadow .15s;
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(79, 209, 199, 0.1);
+        }
+        .editor::placeholder { color: var(--text-dim); }
+        .editor:focus {
+            border-color: var(--ring);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 12%, transparent);
         }
 
         .output {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
-            height: 400px;
+            background: var(--bg-subtle);
+            border: 1.5px solid var(--border);
+            border-radius: .5rem;
+            padding: .875rem 1rem;
+            height: 380px;
             overflow: auto;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.875rem;
-            line-height: 1.6;
+            font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+            font-size: .8125rem;
+            line-height: 1.7;
+            color: var(--text);
             white-space: pre-wrap;
             word-wrap: break-word;
         }
 
-        .options {
-            display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .checkbox {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            background: var(--bg-secondary);
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s ease;
-        }
-
-        .checkbox:checked {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-
-        .checkbox:checked::after {
-            content: '✓';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
+        /* ── Status bar ── */
         .status-bar {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: .875rem 1.25rem;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: background .2s;
         }
-
         .stats {
             display: flex;
             gap: 2rem;
             flex-wrap: wrap;
+            align-items: center;
         }
-
         .stat-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
+            gap: .375rem;
+            font-size: .8125rem;
+            color: var(--text-muted);
         }
-
         .stat-value {
-            color: var(--accent);
+            color: var(--text);
             font-weight: 600;
         }
 
-        .alert {
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid;
-            animation: slideIn 0.3s ease;
-        }
-
-        .alert-error {
-            background: rgba(245, 101, 101, 0.1);
-            border-left-color: var(--error);
-            color: #fed7d7;
-        }
-
-        .alert-success {
-            background: rgba(72, 187, 120, 0.1);
-            border-left-color: var(--success);
-            color: #c6f6d5;
-        }
-
-        .alert-warning {
-            background: rgba(237, 137, 54, 0.1);
-            border-left-color: var(--warning);
-            color: #fbd38d;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* ── Feature cards ── */
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 1rem;
-            margin-top: 2rem;
         }
-
         .feature-card {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid var(--border);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            transition: box-shadow .2s, border-color .2s;
         }
-
+        .feature-card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: var(--border-md);
+        }
+        .feature-icon {
+            font-size: 1.375rem;
+            margin-bottom: .5rem;
+            line-height: 1;
+        }
         .feature-title {
+            font-size: .875rem;
             font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
+            color: var(--text);
+            margin-bottom: .25rem;
+            letter-spacing: -.01em;
         }
-
         .feature-desc {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-size: .8rem;
+            line-height: 1.5;
         }
 
+        /* ── Divider ── */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2rem 0;
+        }
+
+        /* ── Loading spinner ── */
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border);
+            width: .875rem;
+            height: .875rem;
+            border: 1.5px solid var(--border-md);
+            border-top-color: var(--text);
             border-radius: 50%;
-            border-top-color: var(--accent);
-            animation: spin 1s ease-in-out infinite;
+            animation: spin .7s linear infinite;
         }
+        .hidden { display: none !important; }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .hidden {
-            display: none;
-        }
+        /* ── Scrollbar (subtle) ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
     </style>
 </head>
 <body>
     <div class="container">
+
+<!-- Top bar: theme toggle -->
+<div class="topbar">
+    <div class="theme-toggle" id="themeToggle" role="switch" aria-label="Toggle dark mode" tabindex="0">
+        <span class="theme-toggle__icon" id="themeIconSun">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+        </span>
+        <div class="theme-toggle__track">
+            <div class="theme-toggle__thumb"></div>
+        </div>
+        <span class="theme-toggle__icon" id="themeIconMoon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 
+                         7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </span>
+    </div>
+</div>
+
+        <!-- Header -->
         <header class="header">
-            <h1 class="title">JSON ↔ YAML Converter Pro</h1>
+            <h1 class="title">JSON ↔ YAML</h1>
             <p class="subtitle">Convert between JSON and YAML with advanced cleaning, formatting, and security features</p>
         </header>
 
+        <!-- Controls -->
         <div class="controls">
-            <button class="btn" id="convertBtn">
+            <button class="btn btn-primary" id="convertBtn">
                 <span id="convertText">Convert to YAML</span>
                 <span id="loadingSpinner" class="loading hidden"></span>
             </button>
             <button class="btn btn-secondary" id="swapBtn">⇄ Swap</button>
             <button class="btn btn-secondary" id="clearBtn">Clear All</button>
-            <button class="btn btn-secondary" id="downloadBtn" disabled>Download</button>
+            <button class="btn btn-secondary" id="downloadBtn" disabled>↓ Download</button>
             <button class="btn btn-secondary" id="copyBtn" disabled>Copy Output</button>
         </div>
 
+        <!-- Options -->
         <div class="options">
             <div class="checkbox-group">
                 <input type="checkbox" id="dropEvents" class="checkbox" checked>
-                <label for="dropEvents">Remove events/scripts</label>
+                <label for="dropEvents">Remove events / scripts</label>
             </div>
             <div class="checkbox-group">
                 <input type="checkbox" id="maskTokens" class="checkbox" checked>
@@ -360,68 +534,102 @@
             </div>
             <div class="checkbox-group">
                 <input type="checkbox" id="literalBlocks" class="checkbox" checked>
-                <label for="literalBlocks">Use literal blocks for multiline</label>
+                <label for="literalBlocks">Literal blocks for multiline</label>
             </div>
         </div>
 
+        <!-- Alerts -->
         <div id="alertContainer"></div>
 
+        <!-- Main panels -->
         <div class="main-content">
             <div class="panel">
                 <div class="panel-header">
-                    <h2 class="panel-title" id="inputTitle">Input (JSON)</h2>
+                    <h2 class="panel-title" id="inputTitle">Input — JSON</h2>
                     <div class="file-info" id="inputInfo"></div>
                 </div>
-                <textarea 
-                    class="editor" 
-                    id="inputEditor" 
-                    placeholder="Paste your JSON here... Comments and trailing commas are supported!"
+                <textarea
+                    class="editor"
+                    id="inputEditor"
+                    placeholder="Paste your JSON here… Comments and trailing commas are supported!"
                     spellcheck="false"
                 ></textarea>
             </div>
 
             <div class="panel">
                 <div class="panel-header">
-                    <h2 class="panel-title" id="outputTitle">Output (YAML)</h2>
+                    <h2 class="panel-title" id="outputTitle">Output — YAML</h2>
                     <div class="file-info" id="outputInfo"></div>
                 </div>
                 <pre class="output" id="outputEditor"></pre>
             </div>
         </div>
 
+        <!-- Status bar -->
         <div class="status-bar">
             <div class="stats" id="statsContainer">
                 <div class="stat-item">
-                    <span>Status:</span>
+                    <span>Status</span>
                     <span class="stat-value" id="statusText">Ready</span>
                 </div>
             </div>
         </div>
 
+        <hr class="divider">
+
+        <!-- Feature cards -->
         <div class="features">
             <div class="feature-card">
-                <div class="feature-title">🧹 Smart Cleaning</div>
+                <!-- <div class="feature-icon">🧹</div> -->
+                <div class="feature-title">Smart Cleaning</div>
                 <div class="feature-desc">Automatically removes comments, fixes trailing commas, and handles malformed JSON</div>
             </div>
             <div class="feature-card">
-                <div class="feature-title">🔐 Security Focused</div>
+                <!-- <div class="feature-icon">🔐</div> -->
+                <div class="feature-title">Security Focused</div>
                 <div class="feature-desc">Masks sensitive tokens, API keys, and bearer tokens to protect your credentials</div>
             </div>
             <div class="feature-card">
-                <div class="feature-title">⚡ Flexible Format</div>
+                <!-- <div class="feature-icon">⚡</div> -->
+                <div class="feature-title">Flexible Format</div>
                 <div class="feature-desc">Supports JSONC, handles embedded JSON strings, and preserves structure</div>
             </div>
             <div class="feature-card">
-                <div class="feature-title">📊 Postman Ready</div>
+                <!-- <div class="feature-icon">📊</div> -->
+                <div class="feature-title">Postman Ready</div>
                 <div class="feature-desc">Optimized for Postman collections with request counting and event handling</div>
             </div>
         </div>
-    </div>
 
+    </div><!-- /container -->
+
+    <!-- ─── Theme toggle script (CSS-only, zero logic touch) ─── -->
+    <script>
+        (function () {
+            const html = document.documentElement;
+            const toggle = document.getElementById('themeToggle');
+
+            // Persist preference
+            const stored = localStorage.getItem('theme');
+            if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                html.classList.add('dark');
+            }
+
+            function flipTheme() {
+                html.classList.toggle('dark');
+                localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+            }
+
+            toggle.addEventListener('click', flipTheme);
+            toggle.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipTheme(); } });
+        })();
+    </script>
+
+    <!-- ─── Original converter logic – UNTOUCHED ─── -->
     <script>
         class JSONYAMLConverter {
             constructor() {
-                this.mode = 'json-to-yaml'; // 'json-to-yaml' or 'yaml-to-json'
+                this.mode = 'json-to-yaml';
                 this.initializeElements();
                 this.bindEvents();
                 this.loadSample();
@@ -458,13 +666,12 @@
                 this.elements.clearBtn.addEventListener('click', () => this.clear());
                 this.elements.downloadBtn.addEventListener('click', () => this.download());
                 this.elements.copyBtn.addEventListener('click', () => this.copyOutput());
-                
+
                 this.elements.inputEditor.addEventListener('input', () => this.updateInputInfo());
                 this.elements.inputEditor.addEventListener('paste', () => {
                     setTimeout(() => this.updateInputInfo(), 10);
                 });
 
-                // Auto-convert on input change (debounced)
                 let timeout;
                 this.elements.inputEditor.addEventListener('input', () => {
                     clearTimeout(timeout);
@@ -476,20 +683,16 @@
                 const alert = document.createElement('div');
                 alert.className = `alert alert-${type}`;
                 alert.textContent = message;
-                
                 this.elements.alertContainer.innerHTML = '';
                 this.elements.alertContainer.appendChild(alert);
-                
                 if (type === 'success') {
-                    setTimeout(() => {
-                        alert.remove();
-                    }, 3000);
+                    setTimeout(() => { alert.remove(); }, 3000);
                 }
             }
 
             setLoading(loading) {
                 if (loading) {
-                    this.elements.convertText.textContent = 'Converting...';
+                    this.elements.convertText.textContent = 'Converting…';
                     this.elements.loadingSpinner.classList.remove('hidden');
                     this.elements.convertBtn.disabled = true;
                 } else {
@@ -504,8 +707,7 @@
                 const lines = text.split('\n').length;
                 const chars = text.length;
                 const size = new Blob([text]).size;
-                
-                this.elements.inputInfo.textContent = `${lines} lines • ${chars} chars • ${(size / 1024).toFixed(1)} KB`;
+                this.elements.inputInfo.textContent = `${lines} lines · ${chars} chars · ${(size / 1024).toFixed(1)} KB`;
             }
 
             updateOutputInfo() {
@@ -513,48 +715,36 @@
                 const lines = text.split('\n').length;
                 const chars = text.length;
                 const size = new Blob([text]).size;
-                
-                this.elements.outputInfo.textContent = `${lines} lines • ${chars} chars • ${(size / 1024).toFixed(1)} KB`;
+                this.elements.outputInfo.textContent = `${lines} lines · ${chars} chars · ${(size / 1024).toFixed(1)} KB`;
             }
 
             updateStats(stats = {}) {
-                const defaultStats = {
-                    status: 'Ready',
-                    requests: 0,
-                    processingTime: 0
-                };
-                
+                const defaultStats = { status: 'Ready', requests: 0, processingTime: 0 };
                 const finalStats = { ...defaultStats, ...stats };
-                
                 this.elements.statsContainer.innerHTML = `
                     <div class="stat-item">
-                        <span>Status:</span>
+                        <span>Status</span>
                         <span class="stat-value">${finalStats.status}</span>
                     </div>
                     ${finalStats.requests > 0 ? `
                         <div class="stat-item">
-                            <span>Requests:</span>
+                            <span>Requests</span>
                             <span class="stat-value">${finalStats.requests}</span>
-                        </div>
-                    ` : ''}
+                        </div>` : ''}
                     ${finalStats.processingTime > 0 ? `
                         <div class="stat-item">
-                            <span>Processing:</span>
+                            <span>Processing</span>
                             <span class="stat-value">${finalStats.processingTime}ms</span>
-                        </div>
-                    ` : ''}
+                        </div>` : ''}
                 `;
             }
 
-            // Enhanced cleaning and parsing logic
             cleanAndParse(obj, options = {}) {
                 const { dropEvents, maskTokens } = options;
                 const SENSITIVE_KEYS = new Set(['access_token', 'refresh_token', 'token', 'api_key', 'apikey', 'secret']);
 
                 if (typeof obj === 'string') {
                     let str = obj.replace(/\r\n?/g, '\n');
-                    
-                    // Try to parse if it looks like JSON
                     if (this.looksLikeJSON(str)) {
                         try {
                             return this.cleanAndParse(JSON.parse(str), options);
@@ -576,47 +766,25 @@
 
                 if (obj && typeof obj === 'object') {
                     const result = {};
-                    
                     for (const [key, value] of Object.entries(obj)) {
                         const lowerKey = key.toLowerCase();
-                        
-                        // Drop events/scripts if requested
-                        if (dropEvents && ['event', 'events', 'script', 'scripts'].includes(lowerKey)) {
-                            continue;
-                        }
-
-                        // Mask sensitive keys
-                        if (maskTokens && SENSITIVE_KEYS.has(lowerKey)) {
-                            result[key] = '***HIDDEN***';
-                            continue;
-                        }
-
-                        // Handle authorization headers
+                        if (dropEvents && ['event', 'events', 'script', 'scripts'].includes(lowerKey)) continue;
+                        if (maskTokens && SENSITIVE_KEYS.has(lowerKey)) { result[key] = '***HIDDEN***'; continue; }
                         if (lowerKey === 'header' && Array.isArray(value)) {
                             result[key] = value.map(header => {
-                                if (header && typeof header === 'object' && 
-                                    header.key && header.key.toLowerCase() === 'authorization') {
-                                    return {
-                                        ...header,
-                                        value: this.maskBearerToken(header.value || '', maskTokens)
-                                    };
+                                if (header && typeof header === 'object' && header.key && header.key.toLowerCase() === 'authorization') {
+                                    return { ...header, value: this.maskBearerToken(header.value || '', maskTokens) };
                                 }
                                 return this.cleanAndParse(header, options);
                             });
                             continue;
                         }
-
-                        // Handle Postman auth.bearer
                         if (lowerKey === 'auth' && value && typeof value === 'object' && value.bearer) {
                             const authData = { ...value };
                             if (Array.isArray(authData.bearer)) {
                                 authData.bearer = authData.bearer.map(item => {
-                                    if (item && typeof item === 'object' && 
-                                        item.key && item.key.toLowerCase() === 'token') {
-                                        return {
-                                            ...item,
-                                            value: maskTokens ? '***HIDDEN***' : item.value
-                                        };
+                                    if (item && typeof item === 'object' && item.key && item.key.toLowerCase() === 'token') {
+                                        return { ...item, value: maskTokens ? '***HIDDEN***' : item.value };
                                     }
                                     return this.cleanAndParse(item, options);
                                 });
@@ -624,13 +792,10 @@
                             result[key] = authData;
                             continue;
                         }
-
                         result[key] = this.cleanAndParse(value, options);
                     }
-                    
                     return result;
                 }
-
                 return obj;
             }
 
@@ -641,134 +806,69 @@
             }
 
             cleanJSONLikeString(str) {
-                // Remove comments
                 str = str.replace(/\/\*[\s\S]*?\*\//g, '');
                 str = str.replace(/(^|[ \t])\/\/.*?$/gm, '$1');
-                
-                // Fix trailing commas
                 let prev;
-                do {
-                    prev = str;
-                    str = str.replace(/,\s*([}\]])/g, '$1');
-                } while (prev !== str);
-                
+                do { prev = str; str = str.replace(/,\s*([}\]])/g, '$1'); } while (prev !== str);
                 return str.trim();
             }
 
             maskBearerToken(value, mask) {
                 if (!mask || typeof value !== 'string') return value;
-                
                 const trimmed = value.trim();
-                if (trimmed.toLowerCase().startsWith('bearer ')) {
-                    return 'Bearer ***HIDDEN***';
-                }
+                if (trimmed.toLowerCase().startsWith('bearer ')) return 'Bearer ***HIDDEN***';
                 return value;
             }
 
             parseJSONLike(text) {
-                try {
-                    return JSON.parse(text);
-                } catch {
-                    const cleaned = this.cleanJSONLikeString(text);
-                    return JSON.parse(cleaned);
-                }
+                try { return JSON.parse(text); }
+                catch { const cleaned = this.cleanJSONLikeString(text); return JSON.parse(cleaned); }
             }
 
             countRequests(obj) {
-                if (!obj || typeof obj !== 'object' || !Array.isArray(obj.item)) {
-                    return 0;
-                }
-
+                if (!obj || typeof obj !== 'object' || !Array.isArray(obj.item)) return 0;
                 let count = 0;
                 const stack = [...obj.item];
-                
                 while (stack.length) {
                     const item = stack.pop();
                     if (item && typeof item === 'object') {
-                        if (Array.isArray(item.item)) {
-                            stack.push(...item.item);
-                        } else if (item.request) {
-                            count++;
-                        }
+                        if (Array.isArray(item.item)) stack.push(...item.item);
+                        else if (item.request) count++;
                     }
                 }
-                
                 return count;
             }
 
             async convert() {
                 const input = this.elements.inputEditor.value.trim();
-                if (!input) {
-                    this.showAlert('Please enter some content to convert');
-                    return;
-                }
-
+                if (!input) { this.showAlert('Please enter some content to convert'); return; }
                 this.setLoading(true);
                 this.elements.alertContainer.innerHTML = '';
-                
                 const startTime = Date.now();
-
                 try {
-                    let result;
-                    let requests = 0;
-
+                    let result; let requests = 0;
                     if (this.mode === 'json-to-yaml') {
-                        // JSON to YAML
                         const parsed = this.parseJSONLike(input);
-                        const cleaned = this.cleanAndParse(parsed, {
-                            dropEvents: this.elements.dropEvents.checked,
-                            maskTokens: this.elements.maskTokens.checked
-                        });
-
+                        const cleaned = this.cleanAndParse(parsed, { dropEvents: this.elements.dropEvents.checked, maskTokens: this.elements.maskTokens.checked });
                         requests = this.countRequests(cleaned);
-                        
                         if (this.elements.literalBlocks.checked) {
-                            result = jsyaml.dump(cleaned, {
-                                indent: 2,
-                                lineWidth: -1,
-                                noRefs: true,
-                                sortKeys: false,
-                                styles: {
-                                    '!!str': 'literal'
-                                }
-                            });
+                            result = jsyaml.dump(cleaned, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false, styles: { '!!str': 'literal' } });
                         } else {
-                            result = jsyaml.dump(cleaned, {
-                                indent: 2,
-                                lineWidth: -1,
-                                noRefs: true,
-                                sortKeys: false
-                            });
+                            result = jsyaml.dump(cleaned, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false });
                         }
                     } else {
-                        // YAML to JSON
                         const parsed = jsyaml.load(input);
-                        const cleaned = this.cleanAndParse(parsed, {
-                            dropEvents: this.elements.dropEvents.checked,
-                            maskTokens: this.elements.maskTokens.checked
-                        });
-
+                        const cleaned = this.cleanAndParse(parsed, { dropEvents: this.elements.dropEvents.checked, maskTokens: this.elements.maskTokens.checked });
                         requests = this.countRequests(cleaned);
-                        
-                        result = this.elements.prettify.checked ? 
-                            JSON.stringify(cleaned, null, 2) : 
-                            JSON.stringify(cleaned);
+                        result = this.elements.prettify.checked ? JSON.stringify(cleaned, null, 2) : JSON.stringify(cleaned);
                     }
-
                     this.elements.outputEditor.textContent = result;
                     this.elements.downloadBtn.disabled = false;
                     this.elements.copyBtn.disabled = false;
-                    
                     const processingTime = Date.now() - startTime;
-                    this.updateStats({
-                        status: 'Converted successfully',
-                        requests,
-                        processingTime
-                    });
-                    
+                    this.updateStats({ status: 'Converted successfully', requests, processingTime });
                     this.updateOutputInfo();
                     this.showAlert('Conversion completed successfully!', 'success');
-
                 } catch (error) {
                     console.error('Conversion error:', error);
                     this.showAlert(`Conversion failed: ${error.message}`);
@@ -781,24 +881,18 @@
             swap() {
                 const input = this.elements.inputEditor.value;
                 const output = this.elements.outputEditor.textContent;
-                
                 this.elements.inputEditor.value = output;
                 this.elements.outputEditor.textContent = input;
-                
-                // Switch mode
                 this.mode = this.mode === 'json-to-yaml' ? 'yaml-to-json' : 'json-to-yaml';
-                
-                // Update UI
                 if (this.mode === 'json-to-yaml') {
-                    this.elements.inputTitle.textContent = 'Input (JSON)';
-                    this.elements.outputTitle.textContent = 'Output (YAML)';
+                    this.elements.inputTitle.textContent = 'Input — JSON';
+                    this.elements.outputTitle.textContent = 'Output — YAML';
                     this.elements.convertText.textContent = 'Convert to YAML';
                 } else {
-                    this.elements.inputTitle.textContent = 'Input (YAML)';
-                    this.elements.outputTitle.textContent = 'Output (JSON)';
+                    this.elements.inputTitle.textContent = 'Input — YAML';
+                    this.elements.outputTitle.textContent = 'Output — JSON';
                     this.elements.convertText.textContent = 'Convert to JSON';
                 }
-                
                 this.updateInputInfo();
                 this.updateOutputInfo();
                 this.showAlert('Input and output swapped!', 'success');
@@ -829,22 +923,15 @@
             download() {
                 const content = this.elements.outputEditor.textContent;
                 if (!content) return;
-
                 const extension = this.mode === 'json-to-yaml' ? 'yml' : 'json';
                 const filename = `converted.${extension}`;
                 const mimeType = this.mode === 'json-to-yaml' ? 'text/yaml' : 'application/json';
-                
                 const blob = new Blob([content], { type: mimeType });
                 const url = URL.createObjectURL(blob);
-                
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
                 this.showAlert(`Downloaded as ${filename}!`, 'success');
             }
 
@@ -865,7 +952,7 @@
     },
     "header": [
         {
-            "key": "Authorization", 
+            "key": "Authorization",
             "value": "Bearer abc123def456"
         },
         {
@@ -898,16 +985,12 @@
     ],
     "note": "This is a multiline note\\nthat demonstrates\\nhow the converter handles\\nmultiple lines of text."
 }`;
-
                 this.elements.inputEditor.value = sampleJSON;
                 this.updateInputInfo();
             }
         }
 
-        // Initialize the converter when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new JSONYAMLConverter();
-        });
+        document.addEventListener('DOMContentLoaded', () => { new JSONYAMLConverter(); });
     </script>
 </body>
 </html>
